@@ -25,14 +25,11 @@ async function main() {
     const toTrigger = [];
 
     // Process both release and preview
-    // gdkData is an array of tuples: [["release", {...}], ["preview", {...}]]
-    for (const tuple of gdkData) {
-        if (!Array.isArray(tuple) || tuple.length !== 2) continue;
-        const type = tuple[0];
-        const versionsDict = tuple[1];
+    for (const type of ['release', 'preview']) {
+        if (!gdkData[type]) continue;
         const isPreview = type === 'preview';
 
-        for (const [version, urls] of Object.entries(versionsDict)) {
+        for (const [version, urls] of Object.entries(gdkData[type])) {
             // We expect the tag to be v1.26.40.20
             const expectedTag = `v${version}`;
 

@@ -9,6 +9,10 @@ on:
       url:
         description: 'URL of the .msixvc package'
         required: true
+      is_preview:
+        description: 'Is Preview/Beta'
+        required: false
+        default: 'false'
 
 jobs:
   repack:
@@ -43,6 +47,6 @@ jobs:
           name: Bedrock ${{ github.event.inputs.version }}
           files: ./artifacts/*
           draft: false
-          prerelease: false
+          prerelease: ${{ github.event.inputs.is_preview == 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
