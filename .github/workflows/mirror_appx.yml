@@ -1,0 +1,45 @@
+name: Mirror Appx
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Minecraft Version'
+        required: true
+      url:
+        description: 'Direct download URL'
+        required: true
+      is_preview:
+        description: 'Is Preview/Beta'
+        required: false
+        default: 'false'
+
+permissions:
+  contents: write
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Appx
+        run: |
+          echo "Downloading $URL"
+          filename="${URL##*/}"
+          if [[ "$filename" != *.* ]]; then
+            filename="Minecraft-${VERSION}.appx"
+          fi
+          echo "Saving to $filename"
+          curl -L -o "$filename" "$URL"
+          echo "FILENAME=$filename" >> $GITHUB_ENV
+        env:
+          URL: ${{ github.event.inputs.url }}
+          VERSION: ${{ github.event.inputs.version }}
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ github.event.inputs.version }}
+          name: Bedrock ${{ github.event.inputs.version }}
+          files: ${{ env.FILENAME }}
+          prerelease: ${{ github.event.inputs.is_preview == 'true' }}
+          draft: false
