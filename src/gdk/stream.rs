@@ -730,11 +730,15 @@ impl MsiXVDStream {
                 .chunks_exact(2)
                 .map(|c| u16::from_le_bytes([c[0], c[1]]))
                 .collect();
-            self.segment_paths.push(
-                String::from_utf16_lossy(&path_u16)
-                    .trim_matches('\0')
-                    .to_string(),
-            );
+            let path_str = String::from_utf16_lossy(&path_u16)
+                .trim_matches('\0')
+                .to_string();
+            
+            // On Linux/macOS, backslash is a valid filename character, not a directory separator.
+            // Since GDK paths use Windows backslashes, we MUST convert them to forward slashes.
+            let normalized_path = path_str.replace('\\', "/");
+            
+            self.segment_paths.push(normalized_path);
         }
         Ok(())
     }
