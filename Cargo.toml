@@ -1,6 +1,18 @@
 [package]
 name = "bedrock-repacker"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
 
 [dependencies]
+tokio = { version = "1.37.0", features = ["full"] }
+reqwest = { version = "0.12.4", features = ["stream"] }
+aes = "0.8.4"
+hex = "0.4.3"
+uuid = { version = "1.8.0", features = ["serde", "v4"] }
+rayon = "1.10.0"
+once_cell = "1.19.0"
+tracing = "0.1.40"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+zip = "0.6.6"
+clap = { version = "4.5", features = ["derive"] }
+futures-util = "0.3.30"

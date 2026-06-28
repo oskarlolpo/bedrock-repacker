@@ -16,8 +16,13 @@ use std::os::unix::fs::FileExt;
 #[cfg(windows)]
 use std::os::windows::fs::FileExt;
 
-use crate::event::LoadingBarId;
-use crate::event::emit::emit_loading;
+// We'll use a simple placeholder for progress reporting in the CLI
+type LoadingBarId = ();
+fn emit_loading(_id: &LoadingBarId, increment: f64, stage: Option<&str>) {
+    if let Some(msg) = stage {
+        tracing::info!("{}: {:.1}%", msg, increment);
+    }
+}
 
 use super::decoder::MsiXVDDecoder;
 use super::header::{MsiXVDHeader, MsiXVDKind, MsiXVDVolumeAttributes};

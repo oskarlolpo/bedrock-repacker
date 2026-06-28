@@ -1,0 +1,48 @@
+name: Repack Bedrock Version
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version Name (e.g. 1.26.4020.0)'
+        required: true
+      url:
+        description: 'URL of the .msixvc package'
+        required: true
+
+jobs:
+  repack:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install 7zip
+        run: sudo apt-get update && sudo apt-get install -y p7zip-full
+
+      - name: Build Repacker
+        run: cargo build --release
+
+      - name: Run Repacker
+        run: |
+          ./target/release/bedrock-repacker repack \
+            --url "${{ github.event.inputs.url }}" \
+            --output ./artifacts \
+            --volume-size 1000m
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ github.event.inputs.version }}
+          name: Bedrock ${{ github.event.inputs.version }}
+          files: ./artifacts/*
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
