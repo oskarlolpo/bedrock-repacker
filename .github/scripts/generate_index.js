@@ -67,7 +67,13 @@ async function main() {
         let urls = [];
 
         if (isGdk) {
-            if (msixvcAsset) {
+            if (bedrockAppAsset) {
+                // bedrock_app.7z or bedrock_app.7z.001, .002, ... - collect all parts sorted
+                const bedrockParts = assets
+                    .filter(a => a.name.startsWith('bedrock_app.7z'))
+                    .sort((a, b) => a.name.localeCompare(b.name));
+                urls = bedrockParts.map(a => a.browser_download_url);
+            } else if (msixvcAsset) {
                 // Single .msixvc file (small enough to fit)
                 urls = [msixvcAsset.browser_download_url];
             } else if (msixvcVolumeAsset) {
@@ -76,12 +82,6 @@ async function main() {
                     .filter(a => /\.msixvc\.7z\.\d+$/.test(a.name.toLowerCase()))
                     .sort((a, b) => a.name.localeCompare(b.name));
                 urls = volumeParts.map(a => a.browser_download_url);
-            } else if (bedrockAppAsset) {
-                // bedrock_app.7z or bedrock_app.7z.001, .002, ... — collect all parts sorted
-                const bedrockParts = assets
-                    .filter(a => a.name.startsWith('bedrock_app.7z'))
-                    .sort((a, b) => a.name.localeCompare(b.name));
-                urls = bedrockParts.map(a => a.browser_download_url);
             }
         } else if (appxAsset) {
             // UWP .Appx file
