@@ -70,30 +70,34 @@ async function main() {
         
         const assets = release.assets || [];
         
-        // A GDK release is CORRECT only if it has .msixvc or .msixvc.7z.NNN assets
-        // bedrock_app.7z alone with .Appx = wrong (Appx is actually the msixvc renamed incorrectly)
+        // A GDK release is FULLY CORRECT if it has:
+        // - .msixvc or .msixvc.7z.NNN (original encrypted package)
+        // - bedrock_app.7z* (extracted/decrypted content for the launcher)
         const hasMsixvc = assets.some(a => 
             a.name.toLowerCase().endsWith('.msixvc') ||
             /\.msixvc\.7z\.\d+$/.test(a.name.toLowerCase())
         );
+        const hasBedrockApp = assets.some(a => a.name.startsWith('bedrock_app.7z'));
         const hasWrongAppx = assets.some(a => a.name.toLowerCase().endsWith('.appx'));
         
-        if (!hasMsixvc && hasWrongAppx) {
-            console.log(`[NEEDS FIX] v${version} - has .Appx (wrong!) but needs .msixvc (GDK)`);
-            toFix.push({
-                version,
-                url: gdkVersions[version].url,
-                isPreview: gdkVersions[version].isPreview
-            });
-        } else if (!hasMsixvc && !hasWrongAppx) {
-            console.log(`[MISSING PKG] v${version} - no package at all`);
-            toFix.push({
-                version,
-                url: gdkVersions[version].url,
-                isPreview: gdkVersions[version].isPreview
-            });
+        if (hasMsixvc && hasBedrockApp) {
+            console.log(`[OK] v${version} - has .msixvc + bedrock_app.7z ✓`);
+        } else if (!hasMsixvc && hasBedrockApp && hasWrongAppx) {
+            // Has wrong .Appx + bedrock_app.7z — the .Appx is actually the msixvc renamed wrong
+            console.log(`[NEEDS FIX] v${version} - has .Appx (wrong!) + bedrock_app.7z, needs .msixvc`);
+            toFix.push({ version, url: gdkVersions[version].url, isPreview: gdkVersions[version].isPreview });
+        } else if (!hasMsixvc && hasBedrockApp && !hasWrongAppx) {
+            // Has bedrock_app.7z but no .msixvc at all — msixvc was never uploaded
+            console.log(`[NEEDS FIX] v${version} - has bedrock_app.7z but MISSING .msixvc`);
+            toFix.push({ version, url: gdkVersions[version].url, isPreview: gdkVersions[version].isPreview });
+        } else if (!hasMsixvc && !hasBedrockApp && hasWrongAppx) {
+            // Has wrong .Appx only — nothing was extracted
+            console.log(`[NEEDS FIX] v${version} - has only wrong .Appx, needs full repack`);
+            toFix.push({ version, url: gdkVersions[version].url, isPreview: gdkVersions[version].isPreview });
         } else {
-            console.log(`[OK] v${version} - has correct .msixvc`);
+            // No package at all
+            console.log(`[MISSING] v${version} - no GDK assets found`);
+            toFix.push({ version, url: gdkVersions[version].url, isPreview: gdkVersions[version].isPreview });
         }
     }
     
