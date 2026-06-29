@@ -44,9 +44,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             info!("Starting repack process for {}", url);
             
             // 1. Download
+            std::fs::create_dir_all(&output)?;
+            let extension = if url.to_lowercase().ends_with(".appx") { "appx" } else { "msixvc" };
+            let package_name = format!("original_package.{}", extension);
+            let msixvc_path = output.join(&package_name);
+            
             let temp_dir = std::env::temp_dir().join("bedrock-repacker");
             std::fs::create_dir_all(&temp_dir)?;
-            let msixvc_path = temp_dir.join("package.msixvc");
             
             info!("Downloading to {:?}", msixvc_path);
             let client = Client::new();
@@ -82,9 +86,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 std::fs::remove_dir_all(&extract_dir)?;
             }
             
-            info!("Extracting MsiXVC package to {:?}", extract_dir);
-            let mut stream = gdk::stream::MsiXVDStream::new(&msixvc_path).map_err(|e| format!("Stream error: {}", e))?;
-            stream.extract_to(&extract_dir, &()).map_err(|e| format!("Extraction error: {}", e))?;
+            info!("Extracting package to {:?}", extract_dir);
+            let mut extracted = false;
+            if let Ok(mut stream) = gdk::stream::MsiXVDStream::new(&msixvc_path) {
+                if stream.extract_to(&extract_dir, &()).is_ok() {
+                    extracted = true;
+                }
+            }
+
+            if !extracted {
+                info!("Not a valid MsiXVC stream, attempting standard 7z extraction (for .appx)...");
+                let status = Command::new("7z")
+                    .arg("x")
+                    .arg(msixvc_path.to_str().unwrap())
+                    .arg(format!("-o{}", extract_dir.to_str().unwrap()))
+                    .status()?;
+                if !status.success() {
+                    error!("Standard extraction failed");
+                    return Err("Extraction failed".into());
+                }
+            }
             info!("Extraction complete.");
             
             // 3. Repack to 7z
@@ -93,7 +114,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             
             let archive_name = output.join("bedrock_app.7z");
             
-            // Using system 7z command
+                // Using system 7z command
             // On ubuntu github runners, 7z command comes from p7zip-full
             let status = Command::new("7z")
                 .arg("a")

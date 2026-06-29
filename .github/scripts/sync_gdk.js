@@ -9,6 +9,17 @@ async function main() {
     }
     const gdkData = await response.json();
 
+    let vdbData = [];
+    try {
+        if (fs.existsSync('vdb_urls.json')) {
+            console.log('Reading vdb_urls.json...');
+            const vdbRaw = fs.readFileSync('vdb_urls.json', 'utf8');
+            vdbData = JSON.parse(vdbRaw);
+        }
+    } catch (e) {
+        console.error('Failed to read vdb_urls.json', e.message);
+    }
+
     console.log('Fetching existing GitHub releases...');
     let existingReleases = [];
     try {
@@ -50,6 +61,16 @@ async function main() {
         }
     }
 
+    // Process vdb_urls.json
+    for (const item of vdbData) {
+        const expectedTag = `v${item.version}`;
+        if (existingReleases.includes(expectedTag)) {
+            continue;
+        }
+        // Older versions are often not preview but we don't know for sure, assume release
+        toTrigger.push({ version: item.version, url: item.url, isPreview: false });
+    }
+
     console.log(`Found ${toTrigger.length} missing releases to process.`);
 
     // Sort to process oldest first (simple string comparison is mostly fine, or we can just process as is)
@@ -59,8 +80,7 @@ async function main() {
 
     for (const item of toTrigger) {
         console.log(`Triggering workflow for ${item.version} (Preview: ${item.isPreview})`);
-        const isAppx = item.url.toLowerCase().endsWith('.appx');
-        const workflowName = isAppx ? 'mirror_appx.yml' : 'repack.yml';
+        const workflowName = 'repack.yml';
 
         try {
             const cmd = `gh workflow run ${workflowName} -f version="${item.version}" -f url="${item.url}" -f is_preview="${item.isPreview}"`;
