@@ -54,40 +54,55 @@ jobs:
           EXISTING_ASSETS=$(gh release view "v${VERSION}" --json assets -q '.assets[].name' 2>/dev/null || echo "")
           
           if [ "$IS_GDK" == "true" ]; then
-            # For GDK: we want .msixvc (or .msixvc.7z parts). Delete any wrong .Appx first.
+            # For GDK: we want BOTH .msixvc (original package) AND bedrock_app.7z (extracted content)
+            
+            # Step 1: Delete any wrong .Appx assets (incorrectly named msixvc)
             if echo "$EXISTING_ASSETS" | grep -iqE "\.appx$"; then
               echo "GDK release has wrong .Appx assets. Deleting them..."
               for ASSET_NAME in $(gh release view "v${VERSION}" --json assets -q '.assets[].name' 2>/dev/null); do
                 if echo "$ASSET_NAME" | grep -iqE "\.appx$"; then
-                  echo "Deleting asset: $ASSET_NAME"
+                  echo "Deleting wrong asset: $ASSET_NAME"
                   gh release delete-asset "v${VERSION}" "$ASSET_NAME" --yes 2>/dev/null || true
                 fi
               done
+              # Refresh existing assets list after deletion
+              EXISTING_ASSETS=$(gh release view "v${VERSION}" --json assets -q '.assets[].name' 2>/dev/null || echo "")
             fi
             
-            # Check if msixvc assets already exist correctly
-            if echo "$EXISTING_ASSETS" | grep -iqE "\.msixvc$|\.msixvc\.7z\.\d+$|bedrock_app\.7z"; then
-              echo "GDK release already has correct msixvc/7z assets. Skipping upload."
+            # Step 2: Process the original_package.msixvc
+            # Only skip renaming if .msixvc or .msixvc.7z.001 is ALREADY correctly uploaded
+            HAS_MSIXVC=$(echo "$EXISTING_ASSETS" | grep -iqE "\.msixvc$|\.msixvc\.7z\.\d+$" && echo "true" || echo "false")
+            
+            if [ "$HAS_MSIXVC" == "true" ]; then
+              echo "MSIXVC already correctly uploaded. Removing local copy to avoid duplicate."
               rm -f ./artifacts/original_package.*
             else
-              echo "Processing GDK package..."
+              echo "Processing GDK original package (.msixvc)..."
               for file in ./artifacts/original_package.*; do
                 if [ -f "$file" ]; then
                   MSIXVC_PATH="./artifacts/${VERSION}.msixvc"
                   mv "$file" "$MSIXVC_PATH"
                   SIZE=$(stat -c%s "$MSIXVC_PATH")
-                  echo "File size: $SIZE bytes"
+                  echo "MSIXVC size: $SIZE bytes"
                   if [ $SIZE -ge 2000000000 ]; then
-                    echo "MSIXVC is larger than 2GB. Splitting into 7z volumes..."
+                    echo "MSIXVC is larger than 2GB. Splitting into 7z volumes (1.9GB each)..."
                     7z a -v1900m -mx=0 "${MSIXVC_PATH}.7z" "$MSIXVC_PATH"
                     rm -f "$MSIXVC_PATH"
-                    echo "Split complete."
+                    echo "Split complete. Parts:"
+                    ls -lh ./artifacts/*.msixvc.7z.* 2>/dev/null || true
+                  else
+                    echo "MSIXVC fits within 2GB limit, uploading as-is."
                   fi
                 fi
               done
             fi
+            
+            # bedrock_app.7z* is always kept — it was created by the repacker and will be uploaded
+            echo "Artifacts to upload:"
+            ls -lh ./artifacts/ || true
+            
           else
-            # For UWP: check if .Appx already exists
+            # For UWP: just rename to .Appx, skip if already exists
             if echo "$EXISTING_ASSETS" | grep -iqE "\.appx$"; then
               echo "UWP release already has .Appx asset. Removing downloaded copy."
               rm -f ./artifacts/original_package.*
