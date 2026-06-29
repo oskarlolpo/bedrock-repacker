@@ -2,13 +2,31 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 
 async function main() {
-    console.log('Fetching all existing GitHub releases...');
+    console.log('Fetching all existing GitHub releases via API...');
     let existingReleases = [];
     try {
-        const output = execSync('gh release list --limit 1000 --json tagName,assets,isPrerelease,createdAt,publishedAt', { encoding: 'utf8' });
-        existingReleases = JSON.parse(output);
+        const token = process.env.GH_TOKEN;
+        const headers = token ? { 'Authorization': `token ${token}` } : {};
+        
+        let page = 1;
+        while (true) {
+            console.log(`Fetching page ${page}...`);
+            const res = await fetch(`https://api.github.com/repos/oskarlolpo/bedrock-repacker/releases?per_page=100&page=${page}`, { headers });
+            if (!res.ok) {
+                console.error(`Failed to fetch releases: ${res.statusText}`);
+                break;
+            }
+            
+            const data = await res.json();
+            if (data.length === 0) {
+                break;
+            }
+            
+            existingReleases.push(...data);
+            page++;
+        }
     } catch (e) {
-        console.error('Failed to list existing releases. Make sure GITHUB_TOKEN is set and gh cli is authenticated.');
+        console.error('Exception while fetching releases:', e.message);
         process.exit(1);
     }
 
@@ -19,36 +37,47 @@ async function main() {
 
     for (const release of existingReleases) {
         // Skip releases that are not Minecraft versions (like java-jre)
-        if (release.tagName === 'java-jre' || !release.tagName.startsWith('v')) {
+        // REST API uses tag_name, not tagName
+        const tagName = release.tag_name;
+        if (tagName === 'java-jre' || !tagName.startsWith('v')) {
             continue;
         }
 
-        const version = release.tagName.substring(1);
+        const version = tagName.substring(1);
         
         let url = "";
         let isGdk = false;
         
-        // Find the main appx or msixvc asset (ignoring .001 volume files, we just want the base link)
-        const asset = release.assets.find(a => a.name.endsWith('.appx') || a.name.endsWith('.msixvc') || a.name.endsWith('.msixvc.7z') || a.name.endsWith('.msixvc.7z.001') || a.name === 'bedrock_app.7z');
+        // Find the main appx or msixvc asset
+        // Prefer: .appx > .msixvc.7z.001 (split archive) > .msixvc > bedrock_app.7z.*
+        const assets = release.assets || [];
+        const nameLower = (a) => a.name.toLowerCase();
+        const asset = assets.find(a => nameLower(a).endsWith('.appx'))
+            || assets.find(a => nameLower(a).endsWith('.msixvc.7z.001'))
+            || assets.find(a => nameLower(a).endsWith('.msixvc'))
+            || assets.find(a => a.name.startsWith('bedrock_app.7z'));
+        
         if (asset) {
-            url = asset.url; // url to download
-            if (asset.name.includes('.msixvc') || asset.name.includes('bedrock_app')) {
+            // browser_download_url is the public download link in the REST API
+            url = asset.browser_download_url;
+            const n = nameLower(asset);
+            if (n.includes('.msixvc') || n.startsWith('bedrock_app')) {
                 isGdk = true;
             }
         } else {
-            // Some releases might not have assets uploaded yet
+            // Some releases might not have assets uploaded yet — skip
             continue;
         }
         
-        // Check preview
-        const isPreview = release.isPrerelease || version.includes('beta') || version.includes('preview');
+        // Check preview — REST API uses prerelease, not isPrerelease
+        const isPreview = release.prerelease || version.includes('beta') || version.includes('preview');
         
         const type = isPreview ? 'preview' : 'release';
         
         versions[type][version] = {
             url: url,
             is_gdk: isGdk,
-            published_at: release.publishedAt || release.createdAt
+            published_at: release.published_at || release.created_at
         };
     }
 
