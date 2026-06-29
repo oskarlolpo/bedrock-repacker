@@ -4,15 +4,20 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version Name (e.g. 1.26.4020.0)'
+        description: 'Minecraft Version (e.g., 1.19.0.5)'
         required: true
       url:
-        description: 'URL of the .msixvc package'
+        description: 'Download URL for the Appx/MSIXVC'
         required: true
       is_preview:
-        description: 'Is Preview/Beta'
+        description: 'Is this a preview/beta version?'
+        required: true
+        type: boolean
+      is_gdk:
+        description: 'Is this a GDK version?'
         required: false
-        default: 'false'
+        type: boolean
+        default: false
 
 jobs:
   repack:
@@ -50,8 +55,12 @@ jobs:
             echo "New release or no appx. Renaming to standard name."
             for file in ./artifacts/original_package.*; do
               if [ -f "$file" ]; then
-                # Regardless of if it was .appx or .msixvc, we name it .Appx for consistency
-                mv "$file" "./artifacts/${{ github.event.inputs.version }}.Appx"
+                if [ "${{ github.event.inputs.is_gdk }}" == "true" ]; then
+                  mv "$file" "./artifacts/${{ github.event.inputs.version }}.msixvc"
+                else
+                  # For UWP, regardless of if it was .appx or .msixvc, we name it .Appx for consistency
+                  mv "$file" "./artifacts/${{ github.event.inputs.version }}.Appx"
+                fi
               fi
             done
           fi
