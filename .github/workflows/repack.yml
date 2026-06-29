@@ -56,7 +56,14 @@ jobs:
             for file in ./artifacts/original_package.*; do
               if [ -f "$file" ]; then
                 if [ "${{ github.event.inputs.is_gdk }}" == "true" ]; then
-                  mv "$file" "./artifacts/${{ github.event.inputs.version }}.msixvc"
+                  MSIXVC_PATH="./artifacts/${{ github.event.inputs.version }}.msixvc"
+                  mv "$file" "$MSIXVC_PATH"
+                  SIZE=$(stat -c%s "$MSIXVC_PATH")
+                  if [ $SIZE -ge 2000000000 ]; then
+                    echo "MSIXVC is larger than 2GB ($SIZE bytes). Splitting it into 7z volumes..."
+                    7z a -v1900m -mx=0 "$MSIXVC_PATH.7z" "$MSIXVC_PATH"
+                    rm -f "$MSIXVC_PATH"
+                  fi
                 else
                   # For UWP, regardless of if it was .appx or .msixvc, we name it .Appx for consistency
                   mv "$file" "./artifacts/${{ github.event.inputs.version }}.Appx"
