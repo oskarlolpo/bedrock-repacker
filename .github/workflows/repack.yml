@@ -50,9 +50,8 @@ jobs:
             echo "New release or no appx. Renaming to standard name."
             for file in ./artifacts/original_package.*; do
               if [ -f "$file" ]; then
-                EXT="${file##*.}"
-                if [ "$EXT" = "appx" ]; then EXT="Appx"; fi
-                mv "$file" "./artifacts/${{ github.event.inputs.version }}.${EXT}"
+                # Regardless of if it was .appx or .msixvc, we name it .Appx for consistency
+                mv "$file" "./artifacts/${{ github.event.inputs.version }}.Appx"
               fi
             done
           fi
