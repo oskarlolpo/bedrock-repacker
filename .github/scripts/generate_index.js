@@ -1,12 +1,23 @@
 const { execSync } = require('child_process');
 const fs = require('fs');
 
+// Semver-compatible sort comparator for Minecraft versions (a.b.c.d)
+function compareMcVersions(a, b) {
+    const pa = a.split('.').map(Number);
+    const pb = b.split('.').map(Number);
+    for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+        const diff = (pa[i] || 0) - (pb[i] || 0);
+        if (diff !== 0) return diff;
+    }
+    return 0;
+}
+
 async function main() {
     console.log('Fetching all existing GitHub releases via API...');
     let existingReleases = [];
     try {
         const token = process.env.GH_TOKEN;
-        const headers = token ? { 'Authorization': `token ${token}` } : {};
+        const headers = token ? { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' } : {};
         
         let page = 1;
         while (true) {
@@ -18,9 +29,7 @@ async function main() {
             }
             
             const data = await res.json();
-            if (data.length === 0) {
-                break;
-            }
+            if (data.length === 0) break;
             
             existingReleases.push(...data);
             page++;
@@ -30,60 +39,86 @@ async function main() {
         process.exit(1);
     }
 
+    console.log(`Fetched ${existingReleases.length} total releases.`);
+
     const versions = {
         release: {},
         preview: {}
     };
 
     for (const release of existingReleases) {
-        // Skip releases that are not Minecraft versions (like java-jre)
-        // REST API uses tag_name, not tagName
         const tagName = release.tag_name;
-        if (tagName === 'java-jre' || !tagName.startsWith('v')) {
-            continue;
-        }
+        // Skip non-Minecraft releases
+        if (tagName === 'java-jre' || !tagName.startsWith('v')) continue;
 
         const version = tagName.substring(1);
-        
-        let url = "";
-        let isGdk = false;
-        
-        // Find the main appx or msixvc asset
-        // Prefer: .appx > .msixvc.7z.001 (split archive) > .msixvc > bedrock_app.7z.*
         const assets = release.assets || [];
-        const nameLower = (a) => a.name.toLowerCase();
-        const asset = assets.find(a => nameLower(a).endsWith('.appx'))
-            || assets.find(a => nameLower(a).endsWith('.msixvc.7z.001'))
-            || assets.find(a => nameLower(a).endsWith('.msixvc'))
-            || assets.find(a => a.name.startsWith('bedrock_app.7z'));
-        
-        if (asset) {
-            // browser_download_url is the public download link in the REST API
-            url = asset.browser_download_url;
-            const n = nameLower(asset);
-            if (n.includes('.msixvc') || n.startsWith('bedrock_app')) {
-                isGdk = true;
+
+        // === Determine if this is a GDK version ===
+        // GDK versions have msixvc assets or bedrock_app.7z parts
+        const msixvcAsset = assets.find(a => a.name.toLowerCase().endsWith('.msixvc'));
+        const msixvcVolumeAsset = assets.find(a => a.name.toLowerCase().includes('.msixvc.7z.'));
+        const bedrockAppAsset = assets.find(a => a.name.startsWith('bedrock_app.7z'));
+        const appxAsset = assets.find(a => a.name.toLowerCase().endsWith('.appx'));
+
+        const isGdk = !!(msixvcAsset || msixvcVolumeAsset || bedrockAppAsset);
+
+        // === Build URL list ===
+        let urls = [];
+
+        if (isGdk) {
+            if (msixvcAsset) {
+                // Single .msixvc file (small enough to fit)
+                urls = [msixvcAsset.browser_download_url];
+            } else if (msixvcVolumeAsset) {
+                // Multi-part .msixvc.7z.001, .002, ... — collect all parts sorted
+                const volumeParts = assets
+                    .filter(a => /\.msixvc\.7z\.\d+$/.test(a.name.toLowerCase()))
+                    .sort((a, b) => a.name.localeCompare(b.name));
+                urls = volumeParts.map(a => a.browser_download_url);
+            } else if (bedrockAppAsset) {
+                // bedrock_app.7z or bedrock_app.7z.001, .002, ... — collect all parts sorted
+                const bedrockParts = assets
+                    .filter(a => a.name.startsWith('bedrock_app.7z'))
+                    .sort((a, b) => a.name.localeCompare(b.name));
+                urls = bedrockParts.map(a => a.browser_download_url);
             }
-        } else {
-            // Some releases might not have assets uploaded yet — skip
-            continue;
+        } else if (appxAsset) {
+            // UWP .Appx file
+            urls = [appxAsset.browser_download_url];
         }
-        
-        // Check preview — REST API uses prerelease, not isPrerelease
-        const isPreview = release.prerelease || version.includes('beta') || version.includes('preview');
-        
+
+        // Skip releases with no valid download links
+        if (urls.length === 0) continue;
+
+        // === Determine preview/release ===
+        const isPreview = release.prerelease;
         const type = isPreview ? 'preview' : 'release';
-        
+
         versions[type][version] = {
-            url: url,
+            urls: urls,
             is_gdk: isGdk,
             published_at: release.published_at || release.created_at
         };
     }
 
-    // Write to versions.json
-    fs.writeFileSync('versions.json', JSON.stringify(versions, null, 2));
-    console.log('Successfully generated versions.json with ' + (Object.keys(versions.release).length + Object.keys(versions.preview).length) + ' versions.');
+    // === Sort versions newest-first ===
+    function sortedObj(obj) {
+        return Object.fromEntries(
+            Object.entries(obj).sort((a, b) => compareMcVersions(b[0], a[0]))
+        );
+    }
+
+    const output = {
+        release: sortedObj(versions.release),
+        preview: sortedObj(versions.preview)
+    };
+
+    fs.writeFileSync('versions.json', JSON.stringify(output, null, 2));
+    console.log(`Successfully generated versions.json:`);
+    console.log(`  Releases: ${Object.keys(output.release).length}`);
+    console.log(`  Previews: ${Object.keys(output.preview).length}`);
+    console.log(`  Total: ${Object.keys(output.release).length + Object.keys(output.preview).length}`);
 }
 
 main().catch(e => {

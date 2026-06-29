@@ -47,29 +47,58 @@ jobs:
 
       - name: Cleanup / Rename Package
         run: |
-          HAS_APPX=$(gh release view v${{ github.event.inputs.version }} --json assets -q '.assets[].name' 2>/dev/null || echo "")
-          if echo "$HAS_APPX" | grep -iqE "\.appx$|\.msixvc$"; then
-            echo "Release already has appx/msixvc. Deleting downloaded copy to prevent duplicates."
-            rm -f ./artifacts/original_package.*
-          else
-            echo "New release or no appx. Renaming to standard name."
-            for file in ./artifacts/original_package.*; do
-              if [ -f "$file" ]; then
-                if [ "${{ github.event.inputs.is_gdk }}" == "true" ]; then
-                  MSIXVC_PATH="./artifacts/${{ github.event.inputs.version }}.msixvc"
+          IS_GDK="${{ github.event.inputs.is_gdk }}"
+          VERSION="${{ github.event.inputs.version }}"
+          
+          # Check existing assets on the release (if it already exists)
+          EXISTING_ASSETS=$(gh release view "v${VERSION}" --json assets -q '.assets[].name' 2>/dev/null || echo "")
+          
+          if [ "$IS_GDK" == "true" ]; then
+            # For GDK: we want .msixvc (or .msixvc.7z parts). Delete any wrong .Appx first.
+            if echo "$EXISTING_ASSETS" | grep -iqE "\.appx$"; then
+              echo "GDK release has wrong .Appx assets. Deleting them..."
+              for ASSET_NAME in $(gh release view "v${VERSION}" --json assets -q '.assets[].name' 2>/dev/null); do
+                if echo "$ASSET_NAME" | grep -iqE "\.appx$"; then
+                  echo "Deleting asset: $ASSET_NAME"
+                  gh release delete-asset "v${VERSION}" "$ASSET_NAME" --yes 2>/dev/null || true
+                fi
+              done
+            fi
+            
+            # Check if msixvc assets already exist correctly
+            if echo "$EXISTING_ASSETS" | grep -iqE "\.msixvc$|\.msixvc\.7z\.\d+$|bedrock_app\.7z"; then
+              echo "GDK release already has correct msixvc/7z assets. Skipping upload."
+              rm -f ./artifacts/original_package.*
+            else
+              echo "Processing GDK package..."
+              for file in ./artifacts/original_package.*; do
+                if [ -f "$file" ]; then
+                  MSIXVC_PATH="./artifacts/${VERSION}.msixvc"
                   mv "$file" "$MSIXVC_PATH"
                   SIZE=$(stat -c%s "$MSIXVC_PATH")
+                  echo "File size: $SIZE bytes"
                   if [ $SIZE -ge 2000000000 ]; then
-                    echo "MSIXVC is larger than 2GB ($SIZE bytes). Splitting it into 7z volumes..."
-                    7z a -v1900m -mx=0 "$MSIXVC_PATH.7z" "$MSIXVC_PATH"
+                    echo "MSIXVC is larger than 2GB. Splitting into 7z volumes..."
+                    7z a -v1900m -mx=0 "${MSIXVC_PATH}.7z" "$MSIXVC_PATH"
                     rm -f "$MSIXVC_PATH"
+                    echo "Split complete."
                   fi
-                else
-                  # For UWP, regardless of if it was .appx or .msixvc, we name it .Appx for consistency
-                  mv "$file" "./artifacts/${{ github.event.inputs.version }}.Appx"
                 fi
-              fi
-            done
+              done
+            fi
+          else
+            # For UWP: check if .Appx already exists
+            if echo "$EXISTING_ASSETS" | grep -iqE "\.appx$"; then
+              echo "UWP release already has .Appx asset. Removing downloaded copy."
+              rm -f ./artifacts/original_package.*
+            else
+              echo "Renaming to .Appx..."
+              for file in ./artifacts/original_package.*; do
+                if [ -f "$file" ]; then
+                  mv "$file" "./artifacts/${VERSION}.Appx"
+                fi
+              done
+            fi
           fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
