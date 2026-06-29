@@ -6,6 +6,7 @@ async function main() {
     const response = await fetch('https://raw.githubusercontent.com/MinecraftBedrockArchiver/GdkLinks/refs/heads/master/urls.min.json');
     if (!response.ok) {
         throw new Error(`Failed to fetch GDK links: ${response.statusText}`);
+    }
     const gdkData = await response.json();
 
     console.log('Fetching OnixClient releases...');
@@ -39,30 +40,36 @@ async function main() {
         if (!gdkData[type]) continue;
         const isPreview = type === 'preview';
 
-        for (const [version, urls] of Object.entries(gdkData[type])) {
-            // We expect the tag to be v1.26.40.20
+        for (const [version, linkData] of Object.entries(gdkData[type])) {
             const expectedTag = `v${version}`;
 
             if (existingReleases.includes(expectedTag)) {
-                // Already have this release
                 continue;
             }
-
-            // Also check if the alternative tag exists (like v1.26.4020.0)
-            // Just in case we already created it earlier
-            // A simple heuristic is we just rely on exactly v1.26.40.20
             
-            // Get the first URL in the array
-            if (!Array.isArray(urls) || urls.length === 0) continue;
-            const url = urls[0];
+            let url = "";
+            let isGdk = false;
+            if (Array.isArray(linkData) && linkData.length > 0) {
+                url = linkData[0];
+            } else if (typeof linkData === 'object' && linkData !== null) {
+                if (linkData.url) {
+                    url = linkData.url;
+                }
+            }
 
-            toTrigger.push({ version, url, isPreview });
+            if (!url) continue;
+
+            if (url.includes('.msixvc') || url.includes('.7z')) {
+                isGdk = true;
+            }
+
+            toTrigger.push({ version, url, isPreview, isGdk });
         }
     }
 
     // Process OnixClient releases
     for (const release of onixData) {
-        const version = release.tag_name; // e.g. "1.26.10"
+        const version = release.tag_name;
         const expectedTag = `v${version}`;
         if (existingReleases.includes(expectedTag)) {
             continue;
@@ -70,7 +77,7 @@ async function main() {
         
         const asset = release.assets.find(a => a.name.endsWith('.appx') || a.name.endsWith('.msixvc'));
         if (asset) {
-            toTrigger.push({ version: version, url: asset.browser_download_url, isPreview: false });
+            toTrigger.push({ version: version, url: asset.browser_download_url, isPreview: false, isGdk: asset.name.endsWith('.msixvc') });
         }
     }
 
@@ -82,11 +89,11 @@ async function main() {
     toTrigger.reverse();
 
     for (const item of toTrigger) {
-        console.log(`Triggering workflow for ${item.version} (Preview: ${item.isPreview})`);
+        console.log(`Triggering workflow for ${item.version} (Preview: ${item.isPreview}, GDK: ${item.isGdk})`);
         const workflowName = 'repack.yml';
 
         try {
-            const cmd = `gh workflow run ${workflowName} -f version="${item.version}" -f url="${item.url}" -f is_preview="${item.isPreview}"`;
+            const cmd = `gh workflow run ${workflowName} -f version="${item.version}" -f url="${item.url}" -f is_preview="${item.isPreview}" -f is_gdk="${item.isGdk}"`;
             execSync(cmd, { stdio: 'inherit' });
             console.log('Waiting 5 seconds...');
             execSync('sleep 5');
