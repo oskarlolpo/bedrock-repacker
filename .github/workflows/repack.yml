@@ -40,6 +40,25 @@ jobs:
             --output ./artifacts \
             --volume-size 1000m
 
+      - name: Cleanup / Rename Package
+        run: |
+          HAS_APPX=$(gh release view v${{ github.event.inputs.version }} --json assets -q '.assets[].name' 2>/dev/null || echo "")
+          if echo "$HAS_APPX" | grep -iqE "\.appx$|\.msixvc$"; then
+            echo "Release already has appx/msixvc. Deleting downloaded copy to prevent duplicates."
+            rm -f ./artifacts/original_package.*
+          else
+            echo "New release or no appx. Renaming to standard name."
+            for file in ./artifacts/original_package.*; do
+              if [ -f "$file" ]; then
+                EXT="${file##*.}"
+                if [ "$EXT" = "appx" ]; then EXT="Appx"; fi
+                mv "$file" "./artifacts/${{ github.event.inputs.version }}.${EXT}"
+              fi
+            done
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
