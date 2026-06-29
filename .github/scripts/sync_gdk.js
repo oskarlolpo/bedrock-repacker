@@ -6,18 +6,17 @@ async function main() {
     const response = await fetch('https://raw.githubusercontent.com/MinecraftBedrockArchiver/GdkLinks/refs/heads/master/urls.min.json');
     if (!response.ok) {
         throw new Error(`Failed to fetch GDK links: ${response.statusText}`);
-    }
     const gdkData = await response.json();
 
-    let vdbData = [];
+    console.log('Fetching OnixClient releases...');
+    let onixData = [];
     try {
-        if (fs.existsSync('vdb_urls.json')) {
-            console.log('Reading vdb_urls.json...');
-            const vdbRaw = fs.readFileSync('vdb_urls.json', 'utf8');
-            vdbData = JSON.parse(vdbRaw);
+        const onixRes = await fetch('https://api.github.com/repos/OnixClient/onix_compatible_appx/releases?per_page=100');
+        if (onixRes.ok) {
+            onixData = await onixRes.json();
         }
     } catch (e) {
-        console.error('Failed to read vdb_urls.json', e.message);
+        console.error('Failed to fetch OnixClient releases', e.message);
     }
 
     console.log('Fetching existing GitHub releases...');
@@ -61,14 +60,18 @@ async function main() {
         }
     }
 
-    // Process vdb_urls.json
-    for (const item of vdbData) {
-        const expectedTag = `v${item.version}`;
+    // Process OnixClient releases
+    for (const release of onixData) {
+        const version = release.tag_name; // e.g. "1.26.10"
+        const expectedTag = `v${version}`;
         if (existingReleases.includes(expectedTag)) {
             continue;
         }
-        // Older versions are often not preview but we don't know for sure, assume release
-        toTrigger.push({ version: item.version, url: item.url, isPreview: false });
+        
+        const asset = release.assets.find(a => a.name.endsWith('.appx') || a.name.endsWith('.msixvc'));
+        if (asset) {
+            toTrigger.push({ version: version, url: asset.browser_download_url, isPreview: false });
+        }
     }
 
     console.log(`Found ${toTrigger.length} missing releases to process.`);
