@@ -45,7 +45,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             
             // 1. Download
             std::fs::create_dir_all(&output)?;
-            let extension = if url.to_lowercase().ends_with(".appx") { "appx" } else { "msixvc" };
+            // Strip any query string before checking the extension — signed
+            // download URLs (e.g. `...package.appx?sv=...&sig=...`) would
+            // otherwise never match `.ends_with(".appx")` and get saved
+            // with the wrong extension.
+            let path_only = url.split('?').next().unwrap_or(url);
+            let extension = if path_only.to_lowercase().ends_with(".appx") { "appx" } else { "msixvc" };
             let package_name = format!("original_package.{}", extension);
             let msixvc_path = output.join(&package_name);
             
@@ -77,6 +82,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     info!("Downloaded {} / {}", downloaded, total_size);
                     last_log = std::time::Instant::now();
                 }
+            }
+
+            // A truncated/dropped connection would otherwise silently leave
+            // a short file on disk, which then fails much later (and much
+            // less clearly) at extraction — check now, while we still know
+            // exactly what went wrong.
+            if total_size > 0 && downloaded != total_size {
+                error!(
+                    "Download incomplete: expected {} bytes, got {} bytes",
+                    total_size, downloaded
+                );
+                drop(file);
+                std::fs::remove_file(&msixvc_path).ok();
+                return Err(format!(
+                    "Download incomplete: expected {total_size} bytes, got {downloaded} bytes"
+                )
+                .into());
             }
             info!("Download complete.");
             

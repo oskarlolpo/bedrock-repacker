@@ -21,25 +21,57 @@ jobs:
   mirror:
     runs-on: ubuntu-latest
     steps:
+      - name: Install 7-Zip
+        run: sudo apt-get update && sudo apt-get install -y p7zip-full
+
       - name: Download Appx
         run: |
           echo "Downloading $URL"
           filename="${URL##*/}"
+          filename="${filename%%\?*}"  # strip query string, if the URL has one
           if [[ "$filename" != *.* ]]; then
             filename="Minecraft-${VERSION}.appx"
           fi
           echo "Saving to $filename"
-          curl -L -o "$filename" "$URL"
+          curl -L --fail -o "$filename" "$URL"
+
+          # Verify we actually got the whole file — a truncated/failed
+          # download would otherwise silently produce a corrupt release
+          # asset that only fails much later, at extraction/launch time on
+          # someone's machine.
+          remote_size=$(curl -sIL "$URL" | grep -i '^content-length:' | tail -1 | tr -d '\r' | awk '{print $2}')
+          local_size=$(stat -c%s "$filename")
+          if [ -n "$remote_size" ] && [ "$remote_size" != "$local_size" ]; then
+            echo "Download size mismatch: expected $remote_size bytes, got $local_size bytes"
+            exit 1
+          fi
+
           echo "FILENAME=$filename" >> $GITHUB_ENV
         env:
           URL: ${{ github.event.inputs.url }}
           VERSION: ${{ github.event.inputs.version }}
+
+      - name: Split if over 2GB
+        run: |
+          mkdir -p ./artifacts
+          SIZE=$(stat -c%s "$FILENAME")
+          if [ "$SIZE" -ge 2000000000 ]; then
+            echo "File is $SIZE bytes, exceeds GitHub's 2GB asset limit — splitting into 1900MB volumes."
+            7z a -v1900m -mx=0 "./artifacts/${FILENAME}.7z" "$FILENAME"
+            rm -f "$FILENAME"
+          else
+            mv "$FILENAME" "./artifacts/"
+          fi
+          echo "{\"is_gdk\": false}" > ./artifacts/.bedrin-meta.json
+          ls -lh ./artifacts/
+        env:
+          FILENAME: ${{ env.FILENAME }}
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ github.event.inputs.version }}
           name: Bedrock ${{ github.event.inputs.version }}
-          files: ${{ env.FILENAME }}
+          files: ./artifacts/*
           prerelease: ${{ github.event.inputs.is_preview == 'true' }}
           draft: false

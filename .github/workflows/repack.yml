@@ -71,7 +71,7 @@ jobs:
             
             # Step 2: Process the original_package.msixvc
             # Only skip renaming if .msixvc or .msixvc.7z.001 is ALREADY correctly uploaded
-            HAS_MSIXVC=$(echo "$EXISTING_ASSETS" | grep -iqE "\.msixvc$|\.msixvc\.7z\.\d+$" && echo "true" || echo "false")
+            HAS_MSIXVC=$(echo "$EXISTING_ASSETS" | grep -iqE "\.msixvc$|\.msixvc\.7z\.[0-9]+$" && echo "true" || echo "false")
             
             if [ "$HAS_MSIXVC" == "true" ]; then
               echo "MSIXVC already correctly uploaded. Removing local copy to avoid duplicate."
@@ -115,6 +115,16 @@ jobs:
               done
             fi
           fi
+
+          # Write authoritative package-type metadata as its own small release
+          # asset, instead of letting generate_index.js *guess* GDK vs UWP from
+          # which asset names happen to be present. That guess is unreliable:
+          # `bedrock_app.7z` is produced by the repacker for BOTH GDK and UWP
+          # inputs (extraction+repack always runs, regardless of `is_gdk`), so
+          # a UWP release that also gets a `bedrock_app.7z` asset was silently
+          # being classified as GDK downstream. This file is the single source
+          # of truth for `--is_gdk` as the workflow was actually invoked.
+          echo "{\"is_gdk\": ${IS_GDK}}" > ./artifacts/.bedrin-meta.json
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

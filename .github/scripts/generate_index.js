@@ -55,13 +55,33 @@ async function main() {
         const assets = release.assets || [];
 
         // === Determine if this is a GDK version ===
-        // GDK versions have msixvc assets or bedrock_app.7z parts
         const msixvcAsset = assets.find(a => a.name.toLowerCase().endsWith('.msixvc'));
         const msixvcVolumeAsset = assets.find(a => a.name.toLowerCase().includes('.msixvc.7z.'));
         const bedrockAppAsset = assets.find(a => a.name.startsWith('bedrock_app.7z'));
         const appxAsset = assets.find(a => a.name.toLowerCase().endsWith('.appx'));
+        const metaAsset = assets.find(a => a.name === '.bedrin-meta.json');
 
-        const isGdk = !!(msixvcAsset || msixvcVolumeAsset || bedrockAppAsset);
+        // Prefer the authoritative `.bedrin-meta.json` marker written by
+        // repack.yml (records the real `--is_gdk` the workflow was invoked
+        // with) over guessing from which asset names happen to be present.
+        // The guess is unreliable: `bedrock_app.7z` is produced for BOTH GDK
+        // and UWP inputs (extraction+repack always runs regardless of
+        // `is_gdk`), so a UWP release that also got a `bedrock_app.7z` asset
+        // was silently classified as GDK. Fall back to the old heuristic
+        // only for releases created before this marker existed.
+        let isGdk;
+        if (metaAsset) {
+            try {
+                const metaRes = await fetch(metaAsset.browser_download_url);
+                const meta = await metaRes.json();
+                isGdk = !!meta.is_gdk;
+            } catch (e) {
+                console.error(`Failed to read .bedrin-meta.json for v${version}, falling back to heuristic:`, e.message);
+                isGdk = !!(msixvcAsset || msixvcVolumeAsset || bedrockAppAsset);
+            }
+        } else {
+            isGdk = !!(msixvcAsset || msixvcVolumeAsset || bedrockAppAsset);
+        }
 
         // === Build URL list ===
         let urls = [];
@@ -84,8 +104,18 @@ async function main() {
                 urls = volumeParts.map(a => a.browser_download_url);
             }
         } else if (appxAsset) {
-            // UWP .Appx file
+            // UWP .Appx file (single)
             urls = [appxAsset.browser_download_url];
+        } else {
+            // UWP, multi-volume: .appx.7z.001, .002, ... (see mirror_appx.yml,
+            // which now splits files over the 2GB GitHub Releases limit the
+            // same way the GDK path does).
+            const appxVolumeParts = assets
+                .filter(a => /\.appx\.7z\.\d+$/.test(a.name.toLowerCase()))
+                .sort((a, b) => a.name.localeCompare(b.name));
+            if (appxVolumeParts.length > 0) {
+                urls = appxVolumeParts.map(a => a.browser_download_url);
+            }
         }
 
         // Skip releases with no valid download links
