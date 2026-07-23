@@ -1,5 +1,124 @@
 {
   "release": {
+    "1.26.33.1": {
+      "urls": [
+        "https://github.com/oskarlolpo/bedrock-repacker/releases/download/v1.26.33.1/bedrock_app.7z.001"
+      ],
+      "is_gdk": true,
+      "published_at": "2026-07-10T02:00:54Z"
+    },
+    "1.26.21": {
+      "urls": [
+        "https://github.com/oskarlolpo/bedrock-repacker/releases/download/v1.26.21/bedrock_app.7z.001"
+      ],
+      "is_gdk": true,
+      "published_at": "2026-06-30T02:33:47Z"
+    },
+    "1.26.20": {
+      "urls": [
+        "https://github.com/oskarlolpo/bedrock-repacker/releases/download/v1.26.20/bedrock_app.7z.001"
+      ],
+      "is_gdk": true,
+      "published_at": "2026-06-30T02:34:00Z"
+    },
+    "1.26.13": {
+      "urls": [
+        "https://github.com/oskarlolpo/bedrock-repacker/releases/download/v1.26.13/bedrock_app.7z.001"
+      ],
+      "is_gdk": true,
+      "published_at": "2026-06-30T02:33:08Z"
+    },
+    "1.26.12": {
+      "urls": [
+        "https://github.com/oskarlolpo/bedrock-repacker/releases/download/v1.26.12/bedrock_app.7z.001"
+      ],
+      "is_gdk": true,
+      "published_at": "2026-06-30T02:33:59Z"
+    },
+    "1.26.11": {
+      "urls": [
+        "https://github.com/oskarlolpo/bedrock-repacker/releases/download/v1.26.11/bedrock_app.7z.001"
+      ],
+      "is_gdk": true,
+      "published_at": "2026-06-30T02:33:29Z"
+    },
+    "1.26.10": {
+      "urls": [
+        "https://github.com/oskarlolpo/bedrock-repacker/releases/download/v1.26.10/bedrock_app.7z.001"
+      ],
+      "is_gdk": true,
+      "published_at": "2026-06-30T02:33:06Z"
+    },
+    "1.26.3": {
+      "urls": [
+        "https://github.com/oskarlolpo/bedrock-repacker/releases/download/v1.26.3/bedrock_app.7z.001"
+      ],
+      "is_gdk": true,
+      "published_at": "2026-06-30T02:33:03Z"
+    },
+    "1.26.2": {
+      "urls": [
+        "https://github.com/oskarlolpo/bedrock-repacker/releases/download/v1.26.2/bedrock_app.7z.001"
+      ],
+      "is_gdk": true,
+      "published_at": "2026-06-30T02:33:20Z"
+    },
+    "1.26.1": {
+      "urls": [
+        "https://github.com/oskarlolpo/bedrock-repacker/releases/download/v1.26.1/bedrock_app.7z.001"
+      ],
+      "is_gdk": true,
+      "published_at": "2026-06-30T02:32:38Z"
+    },
+    "1.26.0": {
+      "urls": [
+        "https://github.com/oskarlolpo/bedrock-repacker/releases/download/v1.26.0/bedrock_app.7z.001"
+      ],
+      "is_gdk": true,
+      "published_at": "2026-06-30T02:32:36Z"
+    },
+    "1.21.132": {
+      "urls": [
+        "https://github.com/oskarlolpo/bedrock-repacker/releases/download/v1.21.132/bedrock_app.7z.001"
+      ],
+      "is_gdk": true,
+      "published_at": "2026-06-30T02:33:24Z"
+    },
+    "1.21.131": {
+      "urls": [
+        "https://github.com/oskarlolpo/bedrock-repacker/releases/download/v1.21.131/bedrock_app.7z.001"
+      ],
+      "is_gdk": true,
+      "published_at": "2026-06-30T02:32:21Z"
+    },
+    "1.21.130": {
+      "urls": [
+        "https://github.com/oskarlolpo/bedrock-repacker/releases/download/v1.21.130/bedrock_app.7z.001"
+      ],
+      "is_gdk": true,
+      "published_at": "2026-06-30T02:32:15Z"
+    },
+    "1.21.124": {
+      "urls": [
+        "https://github.com/oskarlolpo/bedrock-repacker/releases/download/v1.21.124/bedrock_app.7z.001"
+      ],
+      "is_gdk": true,
+      "published_at": "2026-06-30T02:32:03Z"
+    },
+    "1.21.123": {
+      "urls": [
+        "https://github.com/oskarlolpo/bedrock-repacker/releases/download/v1.21.123/bedrock_app.7z.001"
+      ],
+      "is_gdk": true,
+      "published_at": "2026-06-30T02:32:52Z"
+    },
+    "1.21.122": {
+      "urls": [
+        "https://github.com/oskarlolpo/bedrock-repacker/releases/download/v1.21.122/bedrock_app.7z.001"
+      ],
+      "is_gdk": true,
+      "published_at": "2026-06-30T02:31:56Z"
+    },
     "1.21.121.1": {
       "urls": [
         "https://github.com/oskarlolpo/bedrock-repacker/releases/download/v1.21.121.1/bedrock_app.7z.001"
@@ -7,12 +126,26 @@
       "is_gdk": true,
       "published_at": "2026-06-28T16:58:54Z"
     },
+    "1.21.121": {
+      "urls": [
+        "https://github.com/oskarlolpo/bedrock-repacker/releases/download/v1.21.121/bedrock_app.7z.001"
+      ],
+      "is_gdk": true,
+      "published_at": "2026-06-30T02:32:14Z"
+    },
     "1.21.120.20": {
       "urls": [
         "https://github.com/oskarlolpo/bedrock-repacker/releases/download/v1.21.120.20/bedrock_app.7z.001"
       ],
       "is_gdk": true,
       "published_at": "2026-06-29T05:51:22Z"
+    },
+    "1.21.120": {
+      "urls": [
+        "https://github.com/oskarlolpo/bedrock-repacker/releases/download/v1.21.120/bedrock_app.7z.001"
+      ],
+      "is_gdk": true,
+      "published_at": "2026-06-30T02:31:31Z"
     },
     "1.21.114.1": {
       "urls": [
@@ -1724,6 +1857,29 @@
     }
   },
   "preview": {
+    "1.26.50.20": {
+      "urls": [
+        "https://github.com/oskarlolpo/bedrock-repacker/releases/download/v1.26.50.20/bedrock_app.7z.001"
+      ],
+      "is_gdk": true,
+      "published_at": "2026-07-22T01:48:23Z"
+    },
+    "1.26.40.31": {
+      "urls": [
+        "https://github.com/oskarlolpo/bedrock-repacker/releases/download/v1.26.40.31/bedrock_app.7z.001",
+        "https://github.com/oskarlolpo/bedrock-repacker/releases/download/v1.26.40.31/bedrock_app.7z.002"
+      ],
+      "is_gdk": true,
+      "published_at": "2026-07-15T01:27:33Z"
+    },
+    "1.26.40.30": {
+      "urls": [
+        "https://github.com/oskarlolpo/bedrock-repacker/releases/download/v1.26.40.30/bedrock_app.7z.001",
+        "https://github.com/oskarlolpo/bedrock-repacker/releases/download/v1.26.40.30/bedrock_app.7z.002"
+      ],
+      "is_gdk": true,
+      "published_at": "2026-07-08T01:50:44Z"
+    },
     "1.26.40.27": {
       "urls": [
         "https://github.com/oskarlolpo/bedrock-repacker/releases/download/v1.26.40.27/bedrock_app.7z.001",
