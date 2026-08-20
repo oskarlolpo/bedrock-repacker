@@ -3,6 +3,8 @@ name: Generate Versions JSON
 on:
   release:
     types: [published]
+  schedule:
+    - cron: '0 */6 * * *'
   workflow_dispatch:
 
 permissions:
