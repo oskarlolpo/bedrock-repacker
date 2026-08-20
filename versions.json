@@ -1687,6 +1687,13 @@
       "is_gdk": true,
       "published_at": "2026-06-29T05:19:18Z"
     },
+    "1.8.1.2": {
+      "urls": [
+        "https://github.com/oskarlolpo/bedrock-repacker/releases/download/untagged-70ab3f5a82e65941ff39/bedrock_app.7z.001"
+      ],
+      "is_gdk": true,
+      "published_at": "2026-06-29T05:19:01Z"
+    },
     "1.8.0.24": {
       "urls": [
         "https://github.com/oskarlolpo/bedrock-repacker/releases/download/v1.8.0.24/bedrock_app.7z.001"
