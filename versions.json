@@ -2,17 +2,17 @@
   "release": {
     "1.26.51.1": {
       "urls": [
-        "https://github.com/oskarlolpo/bedrock-repacker/releases/download/untagged-76b20ac695d18dd9b160/1.26.51.1.msixvc.7z.002"
+        "https://github.com/oskarlolpo/bedrock-repacker/releases/download/v1.26.51.1/bedrock_app.7z.001"
       ],
       "is_gdk": true,
-      "published_at": "2026-09-16T02:24:04Z"
+      "published_at": "2026-09-16T02:25:15Z"
     },
     "1.26.51": {
       "urls": [
-        "https://github.com/oskarlolpo/bedrock-repacker/releases/download/untagged-f1deeaa6279a02653bb1/bedrock_app.7z.001"
+        "https://github.com/oskarlolpo/bedrock-repacker/releases/download/v1.26.51/bedrock_app.7z.001"
       ],
       "is_gdk": true,
-      "published_at": "2026-09-16T02:23:15Z"
+      "published_at": "2026-09-16T02:24:28Z"
     },
     "1.26.50.4": {
       "urls": [
@@ -23,10 +23,10 @@
     },
     "1.26.50": {
       "urls": [
-        "https://github.com/oskarlolpo/bedrock-repacker/releases/download/untagged-1ab77ed5f58b846bb720/bedrock_app.7z.001"
+        "https://github.com/oskarlolpo/bedrock-repacker/releases/download/v1.26.50/bedrock_app.7z.001"
       ],
       "is_gdk": true,
-      "published_at": "2026-09-16T02:23:41Z"
+      "published_at": "2026-09-16T02:24:53Z"
     },
     "1.26.45.1": {
       "urls": [
