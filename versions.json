@@ -1927,6 +1927,13 @@
     }
   },
   "preview": {
+    "1.26.70.21": {
+      "urls": [
+        "https://github.com/oskarlolpo/bedrock-repacker/releases/download/v1.26.70.21/bedrock_app.7z.001"
+      ],
+      "is_gdk": true,
+      "published_at": "2026-10-21T02:33:52Z"
+    },
     "1.26.70.20": {
       "urls": [
         "https://github.com/oskarlolpo/bedrock-repacker/releases/download/v1.26.70.20/bedrock_app.7z.001"
