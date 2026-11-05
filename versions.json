@@ -9,10 +9,10 @@
     },
     "1.26.62": {
       "urls": [
-        "https://github.com/oskarlolpo/bedrock-repacker/releases/download/untagged-2807218c479a698dc800/bedrock_app.7z.001"
+        "https://github.com/oskarlolpo/bedrock-repacker/releases/download/v1.26.62/bedrock_app.7z.001"
       ],
       "is_gdk": true,
-      "published_at": "2026-11-05T04:16:44Z"
+      "published_at": "2026-11-05T04:18:06Z"
     },
     "1.26.60.5": {
       "urls": [
